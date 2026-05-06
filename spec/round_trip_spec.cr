@@ -1,7 +1,7 @@
 require "spec"
 require "http/server"
 require "http/web_socket"
-require "../src/marten-cable"
+require "../src/marten_cable"
 
 # An HTTP::Server with just Cable's handler is enough to exercise the
 # round-trip path (in-process backend → WebSocket fan-out). Marten ↔

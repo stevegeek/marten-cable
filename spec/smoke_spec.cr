@@ -1,5 +1,5 @@
 require "spec"
-require "../src/marten-cable"
+require "../src/marten_cable"
 
 # Marten requires SOME settings to be defined before referencing
 # Marten.settings — even just the secret key. Set up a minimal stub.

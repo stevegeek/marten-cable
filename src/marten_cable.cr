@@ -1,8 +1,8 @@
 require "marten"
 require "cable"
 
-require "./marten-cable/in_process_backend"
-require "./marten-cable/use"
+require "./marten_cable/in_process_backend"
+require "./marten_cable/use"
 
 module MartenCable
   VERSION = "0.1.0"
