@@ -25,7 +25,7 @@ module MartenCable
           ::Marten.settings.debug? ? ::Marten::Server::Handlers::DebugLogger.new : ::Marten::Server::Handlers::Logger.new,
           ::Marten::Server::Handlers::Error.new,
           ::Marten::Server::Handlers::Middleware.new,
-          ::Cable::Handler({{connection_class}}).new,
+          ::Cable::Handler({{ connection_class }}).new,
           ::Marten::Server::Handlers::Routing.new,
         ] of ::HTTP::Handler
       end

@@ -39,8 +39,7 @@ describe MartenCable::Session do
       req = request_with_cookie(Marten.settings.sessions.cookie_name, cookie_value)
 
       store = MartenCable::Session.for(req)
-      store.should_not be_nil
-      store = store.not_nil!
+      raise "expected a session store" if store.nil?
 
       store["user_id"]?.should eq("42")
       store["role"]?.should eq("admin")
@@ -55,8 +54,8 @@ describe MartenCable::Session do
         req = request_with_cookie("my_session", cookie_value)
 
         store = MartenCable::Session.for(req)
-        store.should_not be_nil
-        store.not_nil!["k"]?.should eq("v")
+        raise "expected a session store" if store.nil?
+        store["k"]?.should eq("v")
 
         # Wrong cookie name → no session.
         bad_req = request_with_cookie("sessionid", cookie_value)
@@ -73,8 +72,8 @@ describe MartenCable::Session do
       req = request_with_cookie(Marten.settings.sessions.cookie_name, "not-a-real-cookie")
 
       store = MartenCable::Session.for(req)
-      store.should_not be_nil
-      store.not_nil!["user_id"]?.should be_nil
+      raise "expected a session store" if store.nil?
+      store["user_id"]?.should be_nil
     end
   end
 end

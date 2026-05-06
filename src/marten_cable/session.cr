@@ -33,10 +33,10 @@ module MartenCable
     def self.for(request : ::HTTP::Request) : ::Marten::HTTP::Session::Store::Base?
       cookie_name = ::Marten.settings.sessions.cookie_name
       raw_cookie = request.cookies[cookie_name]?
-      return nil if raw_cookie.nil?
+      return if raw_cookie.nil?
 
       session_key = raw_cookie.value
-      return nil if session_key.empty?
+      return if session_key.empty?
 
       store_class = ::Marten::HTTP::Session::Store.get(::Marten.settings.sessions.store)
       store_class.new(session_key)
