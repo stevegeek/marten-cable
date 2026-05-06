@@ -2,7 +2,7 @@ name: marten_cable
 version: 0.1.0
 
 authors:
-  - Stephen Geek <stephen@stephengeek.dev>
+  - Stephen Ierodiaconou <stevegeek@gmail.com>
 
 description: |
   ActionCable-shaped real-time WebSockets for Marten, on top of cable-cr/cable.
