@@ -4,6 +4,4 @@
 /.shards/
 *.dwarf
 
-# Local-dev path overrides — every project in this workspace pins
-# `marten` (and friends) to local clones via shard.override.yml.
 shard.override.yml
