@@ -2,6 +2,7 @@ require "marten"
 require "cable"
 
 require "./marten_cable/in_process_backend"
+require "./marten_cable/session"
 require "./marten_cable/use"
 
 module MartenCable
