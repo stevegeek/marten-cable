@@ -29,12 +29,20 @@ describe MartenCable do
     cable_handlers.size.should eq(1)
   end
 
-  it "places Cable::Handler before Routing and after Middleware" do
+  it "places Cable::Handler ABOVE Marten's Middleware handler" do
+    # Cable::Handler hijacks the socket on a WebSocket upgrade and returns
+    # without writing to context.marten.response. If it sat between
+    # Middleware and Routing, Marten's Middleware adapter would call
+    # `context.marten.response.not_nil!` after `call_next` returned and
+    # crash with NilAssertionError. Cable must be ABOVE Middleware so a
+    # successful upgrade short-circuits the whole Marten chain cleanly.
     handlers = Marten::Server.handlers
-    middleware_idx = handlers.index! { |handler| handler.is_a?(Marten::Server::Handlers::Middleware) }
+    error_idx = handlers.index! { |handler| handler.is_a?(Marten::Server::Handlers::Error) }
     cable_idx = handlers.index! { |handler| handler.is_a?(Cable::Handler(TestConnection)) }
+    middleware_idx = handlers.index! { |handler| handler.is_a?(Marten::Server::Handlers::Middleware) }
     routing_idx = handlers.index! { |handler| handler.is_a?(Marten::Server::Handlers::Routing) }
-    middleware_idx.should be < cable_idx
-    cable_idx.should be < routing_idx
+    error_idx.should be < cable_idx
+    cable_idx.should be < middleware_idx
+    middleware_idx.should be < routing_idx
   end
 end
