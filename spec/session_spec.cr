@@ -1,13 +1,16 @@
 require "spec"
 require "http/request"
-require "../src/marten_cable"
+require "./support/cable_helper"
 
 # Marten requires SOME settings to be defined before referencing
 # Marten.settings — at minimum a 32-byte secret key for the encryptor
 # used by the cookie session store.
-Marten.configure do |config|
-  config.secret_key = "marten-cable-session-spec-secret-key-32+chars"
-  config.installed_apps = [] of Marten::Apps::Config.class
+Spec.before_each do
+  CableSpecHelper.reset_cable_config
+  Marten.configure do |config|
+    config.secret_key = "marten-cable-session-spec-secret-key-32+chars"
+    config.installed_apps = [] of Marten::Apps::Config.class
+  end
 end
 
 # Helper: hand-craft a Marten session cookie value the same way
@@ -50,6 +53,10 @@ describe MartenCable::Session do
       original = Marten.settings.sessions.cookie_name
       begin
         Marten.settings.sessions.cookie_name = "my_session"
+        # `Session.for` caches `cookie_name` at first read; reset so the new
+        # value is picked up.
+        MartenCable::Session.reset_settings_cache!
+
         cookie_value = make_session_cookie({"k" => "v"})
         req = request_with_cookie("my_session", cookie_value)
 
@@ -62,6 +69,7 @@ describe MartenCable::Session do
         MartenCable::Session.for(bad_req).should be_nil
       ensure
         Marten.settings.sessions.cookie_name = original
+        MartenCable::Session.reset_settings_cache!
       end
     end
 
