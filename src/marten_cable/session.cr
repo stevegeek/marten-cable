@@ -15,6 +15,31 @@ module MartenCable
   # cheap when no session cookie is present and the standard Marten
   # tamper/expiry checks still apply when one is.
   #
+  # ## Auth is checked once
+  #
+  # The store is read at WS-upgrade time and never re-checked. That mirrors
+  # the standard ActionCable model — but it means a user who logs out in
+  # another tab keeps their existing WS connection until they reconnect or
+  # the server forcibly disconnects them. To force-disconnect on logout,
+  # call:
+  #
+  #     Cable.server.remote_connections.find(identifier: uid).disconnect
+  #
+  # from your logout handler.
+  #
+  # ## Tampered cookies and `modified?`
+  #
+  # If a tampered or expired session cookie is presented, Marten's
+  # `Marten::HTTP::Session::Store::Cookie#load` rescues
+  # `Marten::Core::Encryptor::InvalidValueError` and falls back to a fresh
+  # empty `SessionHash` — but flips the store's `modified?` flag to `true`.
+  # The current WS flow never persists the store (it has no per-request
+  # `Marten::HTTP::Response` to attach a `Set-Cookie` header to), so this is
+  # harmless today. **Anyone adding a "persist session on disconnect" hook
+  # in future must explicitly skip persistence for stores returned from
+  # this helper** — otherwise a tampered cookie would cause us to issue a
+  # fresh `Set-Cookie` and inadvertently grant the attacker a clean session.
+  #
   # Example usage in an `ApplicationCable::Connection#connect`:
   #
   #     def connect
@@ -29,7 +54,8 @@ module MartenCable
     # Returns a loaded Marten session store for `request`, or `nil` if no
     # session cookie is present. A returned store may still be empty (e.g.
     # the cookie was tampered with or expired) — Marten's cookie store
-    # silently falls back to a fresh hash in that case.
+    # silently falls back to a fresh hash in that case (and sets
+    # `modified?`, see the module docstring).
     def self.for(request : ::HTTP::Request) : ::Marten::HTTP::Session::Store::Base?
       cookie_name = ::Marten.settings.sessions.cookie_name
       raw_cookie = request.cookies[cookie_name]?

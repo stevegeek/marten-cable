@@ -14,7 +14,13 @@ dependencies:
     github: martenframework/marten
   cable:
     github: cable-cr/cable
-    branch: master
+    # Pinned to a specific commit so `shards update` doesn't silently drift
+    # us onto a new master HEAD with unaudited behaviour (see
+    # reviews/marten-cable-review.md §11). When bumping, re-run all spec
+    # files individually and re-verify `lib/cable/src/cable.cr` for the
+    # `default_mount_path` KeyError still being present / fixed (see
+    # README "Always set Cable.settings.route explicitly" note).
+    commit: cb4765ac1749c05738aee4d68d4ce69f3d999240
 
 development_dependencies:
   ameba:
