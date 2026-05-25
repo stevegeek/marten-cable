@@ -1,20 +1,27 @@
 require "spec"
 require "http/server"
 require "http/web_socket"
-require "../src/marten_cable"
+require "./support/cable_helper"
 
 # An HTTP::Server with just Cable's handler is enough to exercise the
 # round-trip path (in-process backend → WebSocket fan-out). Marten ↔
 # Cable handler-chain wiring is covered separately by smoke_spec.cr.
+#
+# Cable config is applied inside `before_each` (rather than at the top
+# level) so this spec is robust to MCR2-style cross-spec global-state
+# leakage when sibling files set their own `Cable.settings`.
 
-Cable.configure do |settings|
-  settings.backend_class = MartenCable::InProcessBackend
-  settings.url = "in-process://"
-  settings.token = "tok"
-  # Workaround: cable-cr's default for `route` is `Cable.message(:default_mount_path)`
-  # which crashes because :default_mount_path lives at the top of INTERNAL,
-  # not under :message_types. Setting it explicitly bypasses the broken default.
-  settings.route = "/cable"
+Spec.before_each do
+  CableSpecHelper.reset_cable_config
+  Cable.configure do |settings|
+    settings.backend_class = MartenCable::InProcessBackend
+    settings.url = "in-process://"
+    settings.token = "tok"
+    # Workaround: cable-cr's default for `route` is `Cable.message(:default_mount_path)`
+    # which crashes because :default_mount_path lives at the top of INTERNAL,
+    # not under :message_types. Setting it explicitly bypasses the broken default.
+    settings.route = "/cable"
+  end
 end
 
 class RtConnection < Cable::Connection
