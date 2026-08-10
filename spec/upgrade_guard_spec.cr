@@ -39,6 +39,21 @@ class RaisingStubHandler
   end
 end
 
+# Terminal handler standing in for the handlers mounted AFTER the guard in
+# `Marten::Server.handlers` (Middleware/Routing). Records that the chain
+# actually reached it — see the next-forwarding regression spec.
+class TerminalStubHandler
+  include HTTP::Handler
+
+  getter calls = 0
+
+  def call(context)
+    @calls += 1
+    context.response.status_code = 200
+    context.response.print("terminal reached")
+  end
+end
+
 # Wraps `HTTP::Server` setup so the test scaffolding stays compact. Picks an
 # ephemeral port so concurrent spec runs don't collide.
 class UpgradeGuardServer
@@ -46,6 +61,14 @@ class UpgradeGuardServer
 
   def initialize(handler : HTTP::Handler)
     @server = HTTP::Server.new([handler] of HTTP::Handler)
+    @address = @server.bind_tcp("127.0.0.1", 0)
+    @ready = ::Channel(Nil).new
+  end
+
+  # Chained variant: exercises the guard the way `Marten::Server.handlers`
+  # actually mounts it — with further handlers AFTER it in the array.
+  def initialize(handlers : Array(HTTP::Handler))
+    @server = HTTP::Server.new(handlers)
     @address = @server.bind_tcp("127.0.0.1", 0)
     @ready = ::Channel(Nil).new
   end
@@ -157,6 +180,31 @@ describe MartenCable::UpgradeGuard do
       # If the guard had mistakenly run host validation here, this would be a
       # 400. The default fallback in HTTP::Server is 404.
       response.status_code.should eq(404)
+    end
+
+    # Regression (found via marten-writebook, 2026-08-10): `HTTP::Server`
+    # links the handler ARRAY via `#next=`, but the wrapped Cable handler is
+    # not in the array. Without `UpgradeGuard#next=` forwarding the link, the
+    # wrapped handler's `call_next` hit `nil` and every plain HTTP request
+    # short-circuited to a bare stdlib 404 instead of reaching the handlers
+    # after the guard (Marten's Middleware/Routing in a real app).
+    it "continues the outer handler chain for non-WebSocket requests" do
+      terminal = TerminalStubHandler.new
+      guard = MartenCable::UpgradeGuard.new(Cable::Handler(UpgradeGuardConnection).new)
+      chained_server = UpgradeGuardServer.new([guard, terminal] of HTTP::Handler)
+      chained_server.start
+
+      begin
+        client = HTTP::Client.new(chained_server.address.address, chained_server.address.port)
+        response = client.get("/books", headers: HTTP::Headers{"Host" => "allowed.test"})
+        client.close
+
+        response.status_code.should eq(200)
+        response.body.should eq("terminal reached")
+        terminal.calls.should eq(1)
+      ensure
+        chained_server.stop
+      end
     end
   end
 

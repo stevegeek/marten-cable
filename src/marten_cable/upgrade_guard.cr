@@ -55,6 +55,16 @@ module MartenCable
     def initialize(@cable_handler : ::HTTP::Handler)
     end
 
+    # `HTTP::Server` links the handler ARRAY via `#next=`, but the wrapped
+    # Cable handler is not in that array — non-upgrade requests delegate to
+    # `@cable_handler.call`, whose own `call_next` would hit `nil` and emit
+    # a bare stdlib 404 for every plain HTTP request. Forward the link so
+    # the wrapped handler continues the outer chain.
+    def next=(handler : ::HTTP::Handler | ::HTTP::Handler::HandlerProc | Nil)
+      @next = handler
+      @cable_handler.next = handler
+    end
+
     # Reset memoised derivation of the origin allowlist from
     # `Marten.settings.allowed_hosts`. The allowlist is built lazily on the
     # first upgrade (so that `Marten.configure` blocks running after this
