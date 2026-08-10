@@ -5,6 +5,7 @@ require "./marten_cable/configuration"
 require "./marten_cable/connection_message_limit"
 require "./marten_cable/in_process_backend"
 require "./marten_cable/session"
+require "./marten_cable/tasker_timer_patch"
 require "./marten_cable/upgrade_guard"
 require "./marten_cable/use"
 
